@@ -6,7 +6,8 @@ mod rustnes;
 fn main() {
 
     let options = eframe::NativeOptions {
-        initial_window_size: Some(egui::vec2(400.0, 300.0)),
+        initial_window_size: Some(egui::vec2(400.0, 450.0)),
+        min_window_size: Some(egui::vec2(400.0, 450.0)),
         ..Default::default()
     };
     eframe::run_native(
@@ -49,6 +50,9 @@ impl eframe::App for rustnes::RustNES {
             self.navigation_bar(ui);
 
             self.control_bar(ui);
+            
+            self.note_stepper(ui);
+
         });
     }
     
