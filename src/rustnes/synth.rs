@@ -25,32 +25,22 @@ impl Synth{
     }
 
     pub(crate) fn play(&mut self){
-        for i in 0..self.get_columns_len(){
-            let raw_note = self.sequence_columns[i].get_index();
-            if raw_note != -1 {
-                let freq = self.get_frequency(raw_note + 69);
+        let source = waves::Oscillators::new(&self.sequence_columns).take_duration(Duration::from_secs_f32(10.0));
 
-                let source = waves::NESTriangleWave::new(freq).take_duration(Duration::from_secs_f32(0.25));
+        let (_stream, stream_handle) = OutputStream::try_default().unwrap();
+        let sink = Sink::try_new(&stream_handle).unwrap();
+    
+        sink.append(source);
+        sink.sleep_until_end();
 
-                let (_stream, stream_handle) = OutputStream::try_default().unwrap();
-                let sink = Sink::try_new(&stream_handle).unwrap();
-            
-                sink.append(source);
-                sink.sleep_until_end();
-            }
-        }
-    }
-
-    fn get_frequency(&self, note: i32) -> f32{
-        440.0 * f32::powf(2.0, (note as f32 - 69.0) / 12.0)
     }
 }
 
 
 /// The column of each note, its bools are represented as a binary number
 /// to keep from needing a large array of bools.
-#[derive(Clone)]
-pub(crate) struct SequenceColumn {
+#[derive(Clone, Debug)]
+pub struct SequenceColumn {
     column: u16,
 }
 
@@ -87,7 +77,7 @@ impl SequenceColumn{
         if index == 16 {
             return -1;
         }
-        index as i32
+        index as i32 + 69
     }
 }
 
@@ -97,13 +87,13 @@ impl SequenceColumn{
 /// Simple rodio sink to play an NES triangle wave
 /// 
 pub(crate) fn play_nes_triangle_wave(freq: f32){
-    let source = waves::NESTriangleWave::new(freq).take_duration(Duration::from_secs_f32(1.0));
+    // let source = waves::NESTriangleWave::new(freq).take_duration(Duration::from_secs_f32(1.0));
 
-    let (_stream, stream_handle) = OutputStream::try_default().unwrap();
-    let sink = Sink::try_new(&stream_handle).unwrap();
+    // let (_stream, stream_handle) = OutputStream::try_default().unwrap();
+    // let sink = Sink::try_new(&stream_handle).unwrap();
 
-    sink.append(source);
-    sink.sleep_until_end();
+    // sink.append(source);
+    // sink.sleep_until_end();
 }
 
 ///
@@ -111,13 +101,13 @@ pub(crate) fn play_nes_triangle_wave(freq: f32){
 /// Simple rodio sink to play an NES pulse wave
 /// 
 pub(crate) fn play_nes_pulse_wave(freq: f32){
-    let source = waves::NESPulseWave::new(freq, 0.5).take_duration(Duration::from_secs_f32(1.0));
+    // let source = waves::NESPulseWave::new(freq, 0.5).take_duration(Duration::from_secs_f32(1.0));
 
-    let (_stream, stream_handle) = OutputStream::try_default().unwrap();
-    let sink = Sink::try_new(&stream_handle).unwrap();
+    // let (_stream, stream_handle) = OutputStream::try_default().unwrap();
+    // let sink = Sink::try_new(&stream_handle).unwrap();
 
-    sink.append(source);
-    sink.sleep_until_end();
+    // sink.append(source);
+    // sink.sleep_until_end();
 }
 
 ///
@@ -125,11 +115,11 @@ pub(crate) fn play_nes_pulse_wave(freq: f32){
 /// Simple rodio sink to play a sine wave
 /// 
 pub(crate) fn play_nes_noise(){
-    let source = waves::NESNoise::new().take_duration(Duration::from_secs_f32(1.0));
+    // let source = waves::NESNoise::new().take_duration(Duration::from_secs_f32(1.0));
 
-    let (_stream, stream_handle) = OutputStream::try_default().unwrap();
-    let sink = Sink::try_new(&stream_handle).unwrap();
+    // let (_stream, stream_handle) = OutputStream::try_default().unwrap();
+    // let sink = Sink::try_new(&stream_handle).unwrap();
 
-    sink.append(source);
-    sink.sleep_until_end();
+    // sink.append(source);
+    // sink.sleep_until_end();
 }
