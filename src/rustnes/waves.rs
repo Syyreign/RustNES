@@ -1,34 +1,34 @@
-use std::time::Duration;
+use std::{time::Duration};
 use rand::Rng;
 
 use crate::Source;
-
-use super::synth::SequenceColumn;
+use super::synth::{WaveColumn, Track};
 
 #[derive(Clone, Debug)]
 pub struct Oscillators {
     pulse_one: NESPulseWave,
     pulse_two: NESPulseWave,
+    triangle: NESTriangleWave,
+    noise: NESNoise,
     num_sample: usize,
-    tempo: u32,
+    beats_per_second: f32,
+    length: usize,
 }
 
 impl Oscillators {
     /// The frequency of the sine.
     #[inline]
-    pub fn new(sequence_column: &Vec<SequenceColumn>) -> Oscillators {
+    pub fn new(track: &Track, tempo: f32) -> Oscillators {
         Oscillators {
-            pulse_one: NESPulseWave::new(sequence_column.to_vec()),
-            pulse_two: NESPulseWave::new(sequence_column.to_vec()),
+            pulse_one: NESPulseWave::new(track.channels[0].to_vec()),
+            pulse_two: NESPulseWave::new(track.channels[1].to_vec()),
+            triangle: NESTriangleWave::new(track.channels[2].to_vec()),
+            noise: NESNoise::new(track.channels[3].to_vec()),
             num_sample: 0,
-            tempo: 80,
+            beats_per_second: tempo / 60.0,
+            length: track.get_length(),
         }
     }
-
-    pub fn start_pulse_one(&mut self, freq: f32, duty: f32, length: u32){
-        self.pulse_one.update(freq, duty, length)
-    }
-
 }
 
 impl Iterator for Oscillators {
@@ -43,10 +43,19 @@ impl Iterator for Oscillators {
     fn next(&mut self) -> Option<f32> {
         self.num_sample = self.num_sample.wrapping_add(1);
 
-        // This is awful, don't unwrap something like this.
-        let t1 = self.pulse_one.next().unwrap();
-        let t2 = self.pulse_two.next().unwrap();
-        let sample = (t1 + t2) / 2.0;
+        let mut index = self.num_sample as f32 / (48000.0 / self.beats_per_second);
+        if index > self.length as f32 -1.0{
+            return Some(0.0);
+        }
+
+        index = index.min(self.length as f32 - 1.0);
+
+        // This is awful, don't do something like this.
+        let t1 = self.pulse_one.next(self.num_sample, index as usize);
+        let t2 = self.pulse_two.next(self.num_sample, index as usize);
+        let t3 = self.triangle.next(self.num_sample, index as usize);
+        let t4 = self.noise.next(index as usize);
+        let sample = (t1 + t2 + t3 + t4) / 4.0;
 
         Some(sample)
     }
@@ -81,18 +90,16 @@ impl Source for Oscillators {
 /// 
 #[derive(Clone, Debug)]
 pub struct NESTriangleWave {
-    freq: f32,
-    num_sample: usize,
+    sequence_columns: Vec<WaveColumn>,
     steps: [f32;16],
 }
 
 impl NESTriangleWave {
     /// The frequency of the sine.
     #[inline]
-    pub fn new(freq: f32) -> NESTriangleWave {
+    pub fn new(sequence_columns: Vec<WaveColumn>) -> NESTriangleWave {
         NESTriangleWave {
-            freq: freq,
-            num_sample: 0,
+            sequence_columns: sequence_columns,
 
             // The steps of the triangle wave
             steps: [-1.0, -0.86666, -0.73333, -0.6, -0.46666, -0.33333, -0.2, -0.06666, 0.06666, 0.2, 0.33333, 0.46666, 0.6, 0.73333, 0.86666, 1.0],
@@ -100,8 +107,7 @@ impl NESTriangleWave {
     }
 }
  
-impl Iterator for NESTriangleWave {
-    type Item = f32;
+impl NESTriangleWave {
 
     ///
     /// This function imitates the NES triangle wave
@@ -109,18 +115,25 @@ impl Iterator for NESTriangleWave {
     /// TODO double check this is correct!
     /// 
     #[inline]
-    fn next(&mut self) -> Option<f32> {
-        self.num_sample = self.num_sample.wrapping_add(1);
+    fn next(&mut self, num_sample: usize, index: usize) -> f32 {
 
-        let freq_ratio = self.freq / 48000.0;
+        let col = &self.sequence_columns[index as usize];
+
+        if col.get_index() == -1 {
+            return 0.0;
+        }
+
+        let freq = get_frequency(col.get_index());
+
+        let freq_ratio = freq / 48000.0;
 
         // Create a triangle wave, from 0-15 as float values
-        let mut x = (((self.num_sample as f32 * 30.0) * freq_ratio) % 30.0) - 15.0;
+        let mut x = (((num_sample as f32 * 30.0) * freq_ratio) % 30.0) - 15.0;
 
         // Round the float values to indexes of an array corresponsing to the stepped triangle wave
         x = x.round();
 
-        Some(self.steps[x as usize])
+        self.steps[x as usize]
     }
 }
 
@@ -130,64 +143,40 @@ impl Iterator for NESTriangleWave {
 /// 
 #[derive(Clone, Debug)]
 pub struct NESPulseWave {
-    sequence_columns: Vec<SequenceColumn>,
-    freq: f32,
+    sequence_columns: Vec<WaveColumn>,
     duty: f32,
-    num_sample: usize,
 }
 
 impl NESPulseWave {
     /// The frequency of the sine.
     /// Duty is time of each pulse. 0.5 is a square wave
     #[inline]
-    pub fn new(sequence_column: Vec<SequenceColumn>) -> NESPulseWave {
+    pub fn new(sequence_columns: Vec<WaveColumn>) -> NESPulseWave {
         NESPulseWave {
-            sequence_columns: sequence_column,
-            freq: 0.0,
+            sequence_columns: sequence_columns,
             duty: 0.5,
-            num_sample: 0,
         }
     }
 
     #[inline]
-    pub fn update(&mut self, freq: f32, duty: f32, length: u32){
-        self.freq = freq;
-        self.duty = duty;
-    }
-}
- 
-impl Iterator for NESPulseWave {
-    type Item = f32;
-
-    ///
-    /// This function imitates the NES Pulse wave
-    /// 
-    #[inline]
-    fn next(&mut self) -> Option<f32> {
-        self.num_sample = self.num_sample.wrapping_add(1);
-
-        let index = self.num_sample as f32 / (48000.0 / 2.0);
-        if index as usize >= self.sequence_columns.len() {
-            return Some(0.0);
-        }
+    fn next(&mut self, num_sample: usize, index: usize) -> f32 {
 
         let col = &self.sequence_columns[index as usize];
 
         if col.get_index() == -1 {
-            return Some(0.0);
+            return 0.0;
         }
 
-        
         let freq = get_frequency(col.get_index());
 
         // Messy, should be cleaned up a bit
         // Divide the 48000 into segments of self.freq, then checks if the current sample
         // is less than half of that. If it is then return 0.0 otherwise return 1.0
-        if (self.num_sample as f32 % (48000.0 / freq)) < (48000.0 / freq) * self.duty {
-            return Some(0.0)
+        if (num_sample as f32 % (48000.0 / freq)) < (48000.0 / freq) * self.duty {
+            return 0.0;
         }
 
-        Some(1.0)
+        1.0
     }
 }
 
@@ -198,33 +187,41 @@ impl Iterator for NESPulseWave {
 /// 
 #[derive(Clone, Debug)]
 pub struct NESNoise {
+    sequence_columns: Vec<WaveColumn>,
     steps: [f32;16],
 }
 
 impl NESNoise {
     #[inline]
-    pub fn new() -> NESNoise {
+    pub fn new(sequence_columns: Vec<WaveColumn>) -> NESNoise {
         NESNoise {
+            sequence_columns: sequence_columns,
             // The steps that the noise can produce
             steps: [-1.0, -0.86666, -0.73333, -0.6, -0.46666, -0.33333, -0.2, -0.06666, 0.06666, 0.2, 0.33333, 0.46666, 0.6, 0.73333, 0.86666, 1.0],
         }
     }
+    
 }
  
-impl Iterator for NESNoise {
-    type Item = f32;
-
+impl NESNoise {
     ///
     /// This function imitates the NES Noise
     /// 
     #[inline]
-    fn next(&mut self) -> Option<f32> {
+    fn next(&mut self, index: usize) -> f32 {
+        let col = &self.sequence_columns[index as usize];
+
+        if col.get_index() == -1 {
+            return 0.0;
+        }
+
         let x = rand::thread_rng().gen_range(0..self.steps.len());
 
-        Some(self.steps[x])
+        self.steps[x]
     }
 }
 
+/// Converts the Midi note number into a frequency
 fn get_frequency(note: i32) -> f32{
     440.0 * f32::powf(2.0, (note as f32 - 69.0) / 12.0)
 }
