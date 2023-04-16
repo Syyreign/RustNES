@@ -25,6 +25,29 @@ in quality.
 ---
 [Cy Chung](https://github.com/crschung), [Jae Park](https://github.com/jpark052), [Spencer Hart](https://github.com/Syyreign), [David Kim](https://github.com/Quayvid), [Ethan Slogotski](https://github.com/eman1003), [Francis German](francisgerman70), [Skylar Buck](https://github.com/Skylar777)
 
+## Contributions
+
+### Cy Chung
+TODO
+
+### Jae Park
+TODO
+
+### Spencer Hart
+- Create base code
+- Waves, Filter, and Oscillators
+- NES non-linear Mixer
+- GUI
+
+### David Kim
+TODO
+
+### Ethan Slogotski
+TODO
+
+## Francis German
+TODO
+
 ## Resources
 ---
 >* [Retro Game Mechanics Explained Playlist](https://www.youtube.com/playlist?list=PLHQ0utQyFw5JD2wWda50J8XuzQ2cFr8RX)
