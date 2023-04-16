@@ -51,13 +51,17 @@ impl Iterator for Oscillators {
         index = index.min(self.length as f32 - 1.0);
 
         // This is awful, don't do something like this.
-        let t1 = self.pulse_one.next(self.num_sample, index as usize);
-        let t2 = self.pulse_two.next(self.num_sample, index as usize);
-        let t3 = self.triangle.next(self.num_sample, index as usize);
-        let t4 = self.noise.next(index as usize);
-        let sample = (t1 + t2 + t3 + t4) / 4.0;
+        let p1 = self.pulse_one.next(self.num_sample, index as usize);
+        let p2 = self.pulse_two.next(self.num_sample, index as usize);
+        let t = self.triangle.next(self.num_sample, index as usize);
+        let n = self.noise.next(index as usize);
 
-        Some(sample)
+        // As the NES mixer isn't linear this equation emulated it
+        // TODO add dmc (the 0.0 / 22638.0)
+        let pulse_out = 95.88 / ((8128.0 / (p1 + p2)) + 100.0);
+        let tnd_out = 159.79 / ((1.0 / ((t / 8227.0) + (n / 12241.0) + (0.0 / 22638.0))) + 100.0);
+
+        Some(pulse_out + tnd_out)
     }
 }
 

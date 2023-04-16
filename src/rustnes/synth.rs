@@ -6,36 +6,47 @@ use crate::rustnes::waves;
 
 /// The struct that defines all of the synth values
 /// TODO make more of these variables private, and add getters and setters
-pub(crate) struct Synth{
-    pub(crate) track: Track,
-    pub(crate) tempo: f32,
-    pub(crate) volume: f32,
-
-    pub(crate) beats_per_measure: u32,
-
-    pub(crate) measures: u32,
-    pub(crate) max_measures: u32,
+pub struct Synth{
+    pub inital_size: usize,
+    
+    pub track: Track,
+    pub tempo: f32,
+    pub volume: f32,
+    pub beats_per_measure: u32,
+    pub max_measures: u32,
 }
 
 impl Default for Synth{
     fn default() -> Self {
 
-        Self {  
-            track: Track::default(),
+        // The inital size of the window/measure
+        // TODO make this more editable/ getters setters
+        Self { 
+            inital_size: 8,
+            track: Track::new(8),
             tempo: 180.0,
             volume: 100.0,
 
-            beats_per_measure: 8,
-
-            measures: 1,
+            beats_per_measure: 8 as u32,
             max_measures: 16,
         }
     }
 }
 
 impl Synth{
+    pub fn new(initial_size: usize) -> Self{
+        Self { 
+            inital_size: initial_size,
+            track: Track::new(initial_size),
+            tempo: 180.0,
+            volume: 100.0,
 
-    pub(crate) fn play(&mut self){
+            beats_per_measure: initial_size as u32,
+            max_measures: 16,
+        }
+    }
+
+    pub fn play(&mut self){
 
         let source = waves::Oscillators::new(&self.track, self.tempo)
             .take_duration(Duration::from_secs_f32(10.0))
@@ -51,32 +62,40 @@ impl Synth{
         });
     }
 
-    pub(crate) fn add_measure(&mut self) -> bool{
-        if !self.can_add_measure(){
+    pub fn new_track(&mut self){
+        self.track = Track::new(self.inital_size);
+    }
+
+    pub fn add_measure(&mut self, amount: usize) -> bool{
+        if !self.can_add_measure(amount){
             println!("Synth::add_measure: Can't add any more notes to the track");
             return false;
         }
 
-        self.track.add_columns(8);
+        self.track.add_columns(amount * 8);
         true
     }
 
-    pub(crate) fn remove_measure(&mut self) -> bool{
-        if !self.can_remove_measure() { 
+    pub fn remove_measure(&mut self, amount: usize) -> bool{
+        if !self.can_remove_measure(amount) { 
             println!("Synth::remove_measure: Can't remove any more notes from the track");
             return false;
         }
 
-        self.track.remove_columns(8);
+        self.track.remove_columns(amount * 8);
         true
     }
 
-    fn can_add_measure(&self) -> bool {
-        (self.track.get_length() as u32 + self.beats_per_measure) <= (self.beats_per_measure * self.max_measures)
+    pub fn can_add_measure(&self, amount: usize) -> bool {
+        (self.track.get_length() as u32 + (amount as u32 * self.beats_per_measure)) <= (self.beats_per_measure * self.max_measures)
     }
 
-    fn can_remove_measure(&self) -> bool {
-        (self.track.get_length() as u32) >= self.beats_per_measure
+    pub fn can_remove_measure(&self, amount: usize) -> bool {
+        (self.track.get_length() as u32) >= amount as u32 * self.beats_per_measure
+    }
+
+    pub fn get_measure_count(&self) -> usize{
+        (self.track.get_length() as u32 / self.beats_per_measure) as usize
     }
 }
 
@@ -105,11 +124,26 @@ impl Default for Track{
 
 impl Track{
 
+    pub fn new(initial_size: usize) -> Self{
+        Self {  
+            channels: [vec![WaveColumn::default(); initial_size], 
+            vec![WaveColumn::default(); initial_size], 
+            vec![WaveColumn::default(); initial_size], 
+            vec![WaveColumn::default(); initial_size]],
+        }
+    }
+
     /// Gets the amount of notes in the track
     /// This length is based on the len() of the vec in index 0
     /// As all of the channels are the same length, this should be fine
     pub fn get_length(&self) -> usize{
         self.channels[0].len()
+    }
+
+    /// Gets the current number of the channels
+    /// Default will be 2 pulse, 1 triangle, and 1 noise. 4 in total
+    pub fn get_channel_count(&self) -> usize{
+        self.channels.len()
     }
 
     /// Add columns based "amount"
@@ -128,9 +162,9 @@ impl Track{
             return
         }
 
-        for channel in &mut self.channels{
+        self.channels.iter_mut().for_each(|channel|{
             channel.truncate(channel.len() - amount);
-        }
+        });
 
     }
 }
