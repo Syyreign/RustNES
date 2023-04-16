@@ -1,10 +1,9 @@
-use egui::{Color32, Widget};
+use egui::Color32;
 
 // Moved waves below rustnes to allow mod to play waves, and clear up main
 mod waves;
 
 mod synth;
-
 mod filters;
 
 pub(crate) struct RustNES {
@@ -229,7 +228,8 @@ impl RustNES{
             }
         }
 
-        // If the index is greater than the measure, then show the "+" for the channel
+        // If the index is greater than the measure, then show the "+" for the column
+        // When the index is greater, than the columns hasnt been activated yet
         else{
             if ui.button("+").clicked() {
                 let add_amount = (measure_index + 1) - self.synth.get_measure_count();

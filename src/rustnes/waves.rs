@@ -46,9 +46,8 @@ impl Iterator for Oscillators {
     type Item = f32;
 
     ///
-    /// This function imitates the NES triangle wave
-    /// This could probably be generalized more
-    /// TODO double check this is correct!
+    /// This function imitates the Oscillators of the NES
+    /// The channels are mixed by hand to achieve NES like sound
     /// 
     #[inline]
     fn next(&mut self) -> Option<f32> {
@@ -72,6 +71,8 @@ impl Iterator for Oscillators {
         let pulse_out = 95.88 / ((8128.0 / (p1 + p2)) + 100.0);
         let tnd_out = 159.79 / ((1.0 / ((t / 8227.0) + (n / 12241.0) + (0.0 / 22638.0))) + 100.0);
 
+        // Pass the raw mixed sound into two high pass filters, and one
+        // low pass filter
         let mut output = self.high_pass_filter1.filter(pulse_out + tnd_out, 0.996039);
         output = self.high_pass_filter2.filter(output, 0.999835);
         output = self.low_pass_filter.filter(output);
