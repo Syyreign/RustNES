@@ -2,7 +2,10 @@ use std::{time::Duration};
 use rand::Rng;
 
 use crate::Source;
+
+// TODO make this not use a super
 use super::synth::{WaveColumn, Track};
+use crate::rustnes::filters;
 
 #[derive(Clone, Debug)]
 pub struct Oscillators {
@@ -13,6 +16,10 @@ pub struct Oscillators {
     num_sample: usize,
     beats_per_second: f32,
     length: usize,
+
+    low_pass_filter: filters::LowPassFilter,
+    high_pass_filter1: filters::HighPassFilter,
+    high_pass_filter2: filters::HighPassFilter,
 }
 
 impl Oscillators {
@@ -27,6 +34,10 @@ impl Oscillators {
             num_sample: 0,
             beats_per_second: tempo / 60.0,
             length: track.get_length(),
+
+            low_pass_filter: filters::LowPassFilter::default(),
+            high_pass_filter1: filters::HighPassFilter::default(),
+            high_pass_filter2: filters::HighPassFilter::default(),
         }
     }
 }
@@ -61,7 +72,12 @@ impl Iterator for Oscillators {
         let pulse_out = 95.88 / ((8128.0 / (p1 + p2)) + 100.0);
         let tnd_out = 159.79 / ((1.0 / ((t / 8227.0) + (n / 12241.0) + (0.0 / 22638.0))) + 100.0);
 
-        Some(pulse_out + tnd_out)
+
+        let mut output = self.high_pass_filter1.filter(pulse_out + tnd_out, 0.996039);
+        output = self.high_pass_filter2.filter(output, 0.999835);
+        output = self.low_pass_filter.filter(output);
+
+        Some(output)
     }
 }
 
