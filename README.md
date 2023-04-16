@@ -37,7 +37,9 @@ TODO
 - Create base code
 - Waves, Filter, and Oscillators
 - NES non-linear Mixer
-- GUI
+- The GUI
+<img width="300" alt="NES_GUI" src="https://user-images.githubusercontent.com/7028156/232274732-fdadd3b3-a00d-450a-b616-97cfe4465e73.png">
+
 
 ### David Kim
 TODO
