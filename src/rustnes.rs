@@ -61,6 +61,8 @@ impl RustNES{
     pub(crate) fn file_menu(&mut self, ui: &mut egui::Ui) {
         if ui.button("New").clicked() {
 
+            self.selected_measure = 0;
+
             //Deletes the old track, and creates a new one
             self.synth.new_track();
             ui.close_menu();
@@ -159,12 +161,14 @@ impl RustNES{
             //TODO move this to using slices
             for i in 0 .. self.synth.beats_per_measure as usize{
 
-                if curr_channel.len() < i{
+                let index = i + (self.selected_measure * self.synth.beats_per_measure as usize);
+
+                if curr_channel.len() < index{
                     println!("RustNES:note_stepper: Index out of bounds returning");
                     return;
                 }
 
-                let curr: &mut synth::WaveColumn = &mut curr_channel[i + (self.selected_measure * self.synth.beats_per_measure as usize)];
+                let curr: &mut synth::WaveColumn = &mut curr_channel[index];
 
                 // Renders the buttons for the stepper.
                 // Starts from 12, as egui starts from the top down

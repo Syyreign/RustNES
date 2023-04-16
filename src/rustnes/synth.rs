@@ -51,8 +51,11 @@ impl Synth{
         // Stop any threads that are playing
         self.stop();
 
+        // The length that the sound should play for
+        let length = self.track.get_length() as f32 * self.get_beats_per_second();
+
         let source = waves::Oscillators::new(&self.track, self.tempo)
-            .take_duration(Duration::from_secs_f32(10.0))
+            .take_duration(Duration::from_secs_f32(length))
             .amplify(self.volume / 100.0);
 
         // Make sure that the current thread can play
@@ -119,6 +122,10 @@ impl Synth{
     pub fn get_measure_count(&self) -> usize{
         (self.track.get_length() as u32 / self.beats_per_measure) as usize
     }
+
+    pub fn get_beats_per_second(&self) -> f32 {
+        self.tempo / 60.0
+    }
 }
 
 /// The current track of the synth
@@ -135,12 +142,7 @@ pub struct Track{
 // Index 3: Noise
 impl Default for Track{
     fn default() -> Self {
-        Self {  
-            channels: [vec![WaveColumn::default(); 8], 
-            vec![WaveColumn::default(); 8], 
-            vec![WaveColumn::default(); 8], 
-            vec![WaveColumn::default(); 8]],
-        }
+        Track::new(8)
     }
 }
 

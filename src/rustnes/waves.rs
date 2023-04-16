@@ -55,7 +55,7 @@ impl Iterator for Oscillators {
         self.num_sample = self.num_sample.wrapping_add(1);
 
         let mut index = self.num_sample as f32 / (48000.0 / self.beats_per_second);
-        if index > self.length as f32 -1.0{
+        if index > self.length as f32{
             return Some(0.0);
         }
 
