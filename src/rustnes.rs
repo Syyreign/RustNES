@@ -1,4 +1,4 @@
-use egui::{Color32};
+use egui::{Color32, Widget};
 
 // Moved waves below rustnes to allow mod to play waves, and clear up main
 mod waves;
@@ -174,7 +174,7 @@ impl RustNES{
                     fill(
                         if curr.is_selected(j) {self.selected_color} 
                         else { self.unselected_color}
-                    )).is_pointer_button_down_on(){
+                    )).clicked(){
                         curr.select(j);
                         println!("{}",curr.get_index());
                     };
