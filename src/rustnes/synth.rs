@@ -2,6 +2,10 @@ use std::{time::Duration};
 use rodio::{Sink, OutputStream, Source};
 use std::thread;
 
+// Atomics are used to stop the rodio play thread
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+
 use crate::rustnes::waves;
 
 /// The struct that defines all of the synth values
@@ -14,6 +18,8 @@ pub struct Synth{
     pub volume: f32,
     pub beats_per_measure: u32,
     pub max_measures: u32,
+
+    stop_thread: Arc<AtomicBool>,
 }
 
 impl Default for Synth{
@@ -21,15 +27,7 @@ impl Default for Synth{
 
         // The inital size of the window/measure
         // TODO make this more editable/ getters setters
-        Self { 
-            inital_size: 8,
-            track: Track::new(8),
-            tempo: 180.0,
-            volume: 100.0,
-
-            beats_per_measure: 8 as u32,
-            max_measures: 16,
-        }
+        Synth::new(8)
     }
 }
 
@@ -43,23 +41,47 @@ impl Synth{
 
             beats_per_measure: initial_size as u32,
             max_measures: 16,
+
+            stop_thread: Arc::new(AtomicBool::new(false)),
         }
     }
 
     pub fn play(&mut self){
 
+        // Stop any threads that are playing
+        self.stop();
+
         let source = waves::Oscillators::new(&self.track, self.tempo)
             .take_duration(Duration::from_secs_f32(10.0))
             .amplify(self.volume / 100.0);
 
-        thread::spawn(||{
+        // Make sure that the current thread can play
+        self.stop_thread.store(false, Ordering::Relaxed);
+
+        let stop_thread = self.stop_thread.clone();
+
+        // Spawn a new thread with an atomic to allow it to be stopped
+        // A thread is needed otherwise the main thread will need to stopped
+        // for the sink to play
+        thread::spawn(move ||{
 
             let (_stream, stream_handle) = OutputStream::try_default().unwrap();
             let sink = Sink::try_new(&stream_handle).unwrap();
-        
+
             sink.append(source);
-            sink.sleep_until_end();
+        
+            // Loop until the sink is empty, or the thread is told to stop
+            loop{
+                if sink.empty() || stop_thread.load(Ordering::Relaxed){
+                    break;
+                }
+            }
+            stop_thread.store(false, Ordering::Relaxed);
         });
+    }
+
+    pub fn stop(&mut self){
+        self.stop_thread.store(true, Ordering::Relaxed);
     }
 
     pub fn new_track(&mut self){

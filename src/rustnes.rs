@@ -1,5 +1,3 @@
-use std::path::Iter;
-
 use egui::{Color32};
 
 // Moved waves below rustnes to allow mod to play waves, and clear up main
@@ -49,7 +47,6 @@ impl RustNES{
         .min_height(25.0)
         .show_inside(ui, |ui| {
             ui.horizontal_centered(|ui| {
-                //ui.menu_button("File", Self::file_menu);
                 ui.menu_button("File", |ui|{self.file_menu(ui)});
                 ui.menu_button("Edit", Self::edit_menu);
     
@@ -142,8 +139,8 @@ impl RustNES{
                 if ui.button("Play").clicked(){
                     self.synth.play();
                 }
-                if ui.button("Pause").clicked(){
-                    println!("TODO!"); 
+                if ui.button("Stop").clicked(){
+                    self.synth.stop();
                 }
                 ui.add(egui::Slider::new(&mut self.synth.volume, 0.0..=100.0).show_value(false));
             });
@@ -177,7 +174,7 @@ impl RustNES{
                     fill(
                         if curr.is_selected(j) {self.selected_color} 
                         else { self.unselected_color}
-                    )).clicked(){
+                    )).is_pointer_button_down_on(){
                         curr.select(j);
                         println!("{}",curr.get_index());
                     };
