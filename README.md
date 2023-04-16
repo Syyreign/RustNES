@@ -48,7 +48,7 @@ TODO
 ### Ethan Slogotski
 TODO
 
-## Francis German
+### Francis German
 TODO
 
 ## Resources
