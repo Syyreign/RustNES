@@ -51,6 +51,9 @@ TODO
 ### Francis German
 TODO
 
+### Skylar Buck
+TODO
+
 ## Resources
 ---
 >* [Retro Game Mechanics Explained Playlist](https://www.youtube.com/playlist?list=PLHQ0utQyFw5JD2wWda50J8XuzQ2cFr8RX)
