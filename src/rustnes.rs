@@ -28,7 +28,7 @@ impl Default for RustNES {
         Self {
             _picked_path: None,
             _test_bool: false,
-            synth: synth::Synth::new(8),
+            synth: synth::Synth::new(16),
             unselected_color: Color32::from_rgb(100, 100, 100),
             selected_color: Color32::from_rgb(80, 200, 80),
 
@@ -255,7 +255,7 @@ impl RustNES{
             if ui.button("+").clicked() {
                 let add_amount = (measure_index + 1) - self.synth.get_measure_count();
 
-                 self.synth.add_measure(add_amount);
+                self.synth.add_measure(add_amount);
             }
         }
     }

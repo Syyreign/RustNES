@@ -161,7 +161,7 @@ impl NESTriangleWave {
         let freq_ratio = freq / 48000.0;
 
         // Create a triangle wave, from 0-15 as float values
-        let mut x = (((num_sample as f32 * 30.0) * freq_ratio) % 30.0) - 15.0;
+        let mut x = ((((num_sample as f32 * 30.0) * freq_ratio) % 30.0) - 15.0).abs();
 
         // Round the float values to indexes of an array corresponsing to the stepped triangle wave
         x = x.round();

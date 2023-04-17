@@ -36,7 +36,9 @@ impl Synth{
         Self { 
             inital_size: initial_size,
             track: Track::new(initial_size),
-            tempo: 180.0,
+
+            // The tempo is set to 960, as a note is technically only 1/16
+            tempo: 960.0,
             volume: 100.0,
 
             beats_per_measure: initial_size as u32,
@@ -97,7 +99,7 @@ impl Synth{
             return false;
         }
 
-        self.track.add_columns(amount * 8);
+        self.track.add_columns(amount * self.beats_per_measure as usize);
         true
     }
 
@@ -107,7 +109,7 @@ impl Synth{
             return false;
         }
 
-        self.track.remove_columns(amount * 8);
+        self.track.remove_columns(amount * self.beats_per_measure as usize);
         true
     }
 
