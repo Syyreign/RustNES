@@ -179,7 +179,7 @@ impl RustNES{
 
                 let index = i + (self.selected_measure * self.synth.beats_per_measure as usize);
 
-                if curr_channel.len() < index{
+                if curr_channel.len() <= index{
                     println!("RustNES:note_stepper: Index out of bounds returning");
                     return;
                 }
@@ -243,8 +243,9 @@ impl RustNES{
         if measure_index < self.synth.get_measure_count(){
             if ui.button("–").clicked() {
                 let remove_amount = self.synth.get_measure_count() - measure_index;
-
                 self.synth.remove_measure(remove_amount);
+
+                self.selected_measure = self.synth.get_measure_count() - 1;
             }
             
             for j in 0 .. self.synth.track.get_channel_count(){
