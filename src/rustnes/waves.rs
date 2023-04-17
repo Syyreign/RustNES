@@ -7,6 +7,18 @@ use crate::Source;
 use super::synth::{WaveColumn, Track};
 use crate::rustnes::filters;
 
+// The period table of the NES
+const PERIODS: &'static [u32] = &[
+    2033,1919,1811,1709,1613,1523,1437,1356,1280,1208,
+    1140,1076,1016,959, 905, 854, 806, 761, 718, 678,
+    640, 604, 570, 538, 507, 479, 452, 427, 403, 380, 
+    359, 338, 319, 301, 284, 268, 253, 239, 225, 213,
+    201, 189, 179, 169, 159, 150, 142, 134, 126, 119,
+    112, 106, 100, 94,  89,  84,  79,  75,  70,  66,
+    63,  59,  56,  52,  49,  47,  44,  41,  39,  37,
+    35,  33,  31,  29,  27,  26,  24,  23,  21,  20,
+];
+
 #[derive(Clone, Debug)]
 pub struct Oscillators {
     pulse_one: NESPulseWave,
@@ -143,7 +155,8 @@ impl NESTriangleWave {
             return 0.0;
         }
 
-        let freq = get_frequency(col.get_index());
+        // The frequency of the triangle wave on the NES is 1 octave lower hence the / 2.0
+        let freq = get_frequency(col.get_index()) / 2.0;
 
         let freq_ratio = freq / 48000.0;
 
@@ -242,6 +255,12 @@ impl NESNoise {
 }
 
 /// Converts the Midi note number into a frequency
+/// returns an int cast to a float, as the NES didnt have a FPU
 fn get_frequency(note: i32) -> f32{
-    440.0 * f32::powf(2.0, (note as f32 - 69.0) / 12.0)
+    if note < 0 || note >= PERIODS.len() as i32 {
+        return 0.0;
+    }
+    
+    // 17789773 is the NES CPU clock rate for NTSC
+    (1789773 / (16 * (PERIODS[note as usize] + 1))) as f32
 }

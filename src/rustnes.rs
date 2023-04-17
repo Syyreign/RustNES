@@ -1,4 +1,4 @@
-use egui::Color32;
+use egui::{Color32, Widget, Sense};
 
 // Moved waves below rustnes to allow mod to play waves, and clear up main
 mod waves;
@@ -19,6 +19,8 @@ pub(crate) struct RustNES {
     pub(crate) selected_measure: usize,
 
     pub(crate) channel_symbol: [String;4],
+
+    pressed: bool,
 }
 
 impl Default for RustNES {
@@ -34,6 +36,8 @@ impl Default for RustNES {
             selected_measure: 0,
 
             channel_symbol: ["∏".to_owned(),"∏".to_owned(),"⏶".to_owned(),"♒".to_owned()],
+
+            pressed: false,
         }
     }
 }
@@ -169,18 +173,35 @@ impl RustNES{
 
                 let curr: &mut synth::WaveColumn = &mut curr_channel[index];
 
-                // Renders the buttons for the stepper.
-                // Starts from 12, as egui starts from the top down
                 for j in (0..12).rev(){
-                    if columns[i].add(
-                    egui::Button::new("").
-                    fill(
-                        if curr.is_selected(j) {self.selected_color} 
-                        else { self.unselected_color}
-                    )).clicked(){
+                    let button = egui::Button::new("")
+                        .fill(
+                            if curr.is_selected(j) {self.selected_color} 
+                            else { self.unselected_color}
+                        )
+                        .sense(Sense{ click: true, drag: true, focusable: false });
+                    let response = button.ui(&mut columns[i]);
+
+                    // TODO Fix this mess
+                    // If the button is pressed, then select the current note
+                    if response.hovered() && !curr.is_selected(j) && response.ctx.input().pointer.any_down() && !self.pressed{
                         curr.select(j);
-                        println!("{}",curr.get_index());
-                    };
+                        println!("{} {} dragged", j, response.ctx.input().pointer.any_down());
+                    }
+
+                    // On a drag, select multiple notes
+                    else if response.hovered() && response.ctx.input().pointer.any_pressed(){
+                        curr.select(j);
+                        println!("{} clicked", j);
+                        self.pressed = true;
+                        continue;
+                    }
+
+                    // To stop the notes from turning on and off, use a flag
+                    // Gross
+                    if response.ctx.input().pointer.any_released() {
+                        self.pressed = false;
+                    }
                 }
             }
         });

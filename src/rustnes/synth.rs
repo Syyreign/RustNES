@@ -234,7 +234,9 @@ impl WaveColumn{
         if index == 16 {
             return -1;
         }
-        index as i32 + 69
+
+        // + 36 so that the base note frequency is 440 rather than 24
+        index as i32 + 36
     }
 }
 
