@@ -71,16 +71,29 @@ impl RustNES{
             ui.close_menu();
         }
 
-        if ui.button("Open File...").clicked() {
+        if ui.button("Open").clicked() {
             // rfd is used to access files
-            if let Some(path) = rfd::FileDialog::new().pick_file() {
-                Some(path.display().to_string());
+            if let Some(path) = rfd::FileDialog::new()
+                // Only look for rsf files
+                .add_filter("", &["rsf"])
+                .pick_file() {
+
+                // TODO handle result
+                self.synth.load_track(path).ok();
             }
             ui.close_menu();
         }
 
-        if ui.button("Save").clicked() {
-            println!("TODO! save current work");
+        if ui.button("Save As").clicked() {
+
+            if let Some(path) = rfd::FileDialog::new()
+            // Only look for rsf files
+            .add_filter("", &["rsf"])
+            .save_file() {
+
+                // TODO handle result
+                self.synth.save_track(path).ok();
+            }
             ui.close_menu();
         }
 

@@ -1,6 +1,12 @@
+use std::path::PathBuf;
 use std::{time::Duration};
 use rodio::{Sink, OutputStream, Source};
 use std::thread;
+
+use bincode;
+use serde::{Serialize, Deserialize};
+use std::fs::File;
+use std::io::prelude::*;
 
 // Atomics are used to stop the rodio play thread
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -128,10 +134,31 @@ impl Synth{
     pub fn get_beats_per_second(&self) -> f32 {
         self.tempo / 60.0
     }
+
+    pub fn save_track(&self, path: PathBuf) -> std::io::Result<()> {
+        let encoded_track: Vec<u8> = bincode::serialize(&self.track).unwrap();
+        let mut file = File::create(path)?;
+        file.write_all(&encoded_track)
+    }
+
+    pub fn load_track(&mut self, path: PathBuf) -> std::io::Result<()> {
+        let mut file = File::open(path)?;
+
+        let mut encoded_track = Vec::<u8>::new();
+        file.read_to_end(&mut encoded_track)?;
+
+        let decoded_track: Track = bincode::deserialize(&encoded_track[..]).unwrap();
+
+        self.track = decoded_track;
+        
+        // TODO make this not just send an Ok
+        Ok(())
+    }
 }
 
 /// The current track of the synth
 /// contains the 4 main channels
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Track{
     pub(crate) channels: [Vec<WaveColumn>; 4],
 }
@@ -198,7 +225,7 @@ impl Track{
 
 /// The column of each note, its bools are represented as a binary number
 /// to keep from needing a large array of bools.
-#[derive(Clone, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct WaveColumn {
     column: u16,
 }
