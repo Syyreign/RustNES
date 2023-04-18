@@ -38,7 +38,7 @@ TODO
 - Waves and Oscillators
 - Filters (high and low pass)
 - NES non-linear Mixer
-- File saving and loading using the custom extension rsf (RustNES Sound Format)
+- File saving and loading using the custom extension `.rsf` (RustNES Sound Format)
 - The GUI
 <img width="300" alt="NES_GUI" src="https://user-images.githubusercontent.com/7028156/232274732-fdadd3b3-a00d-450a-b616-97cfe4465e73.png">
 
