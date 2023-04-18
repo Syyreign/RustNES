@@ -16,7 +16,7 @@ pub(crate) struct RustNES {
     pub(crate) selected_color: Color32,
 
     pub(crate) selected_channel: usize,
-    pub(crate) selected_measure: usize,
+    pub(crate) selected_page: usize,
 
     pub(crate) channel_symbol: [String;4],
 
@@ -28,12 +28,12 @@ impl Default for RustNES {
         Self {
             _picked_path: None,
             _test_bool: false,
-            synth: synth::Synth::new(16),
+            synth: synth::Synth::new(8, 4, 8),
             unselected_color: Color32::from_rgb(100, 100, 100),
             selected_color: Color32::from_rgb(80, 200, 80),
 
             selected_channel: 0,
-            selected_measure: 0,
+            selected_page: 0,
 
             channel_symbol: ["∏".to_owned(),"∏".to_owned(),"⏶".to_owned(),"♒".to_owned()],
 
@@ -64,7 +64,7 @@ impl RustNES{
     pub(crate) fn file_menu(&mut self, ui: &mut egui::Ui) {
         if ui.button("New").clicked() {
 
-            self.selected_measure = 0;
+            self.selected_page = 0;
 
             //Deletes the old track, and creates a new one
             self.synth.new_track();
@@ -169,55 +169,81 @@ impl RustNES{
     /// Uses the columns ui to create a grid of buttons that each correspond
     /// to a specific note. Currently only 8 buttons per screen.
     pub(crate) fn note_stepper(&mut self, ui: &mut egui::Ui){
+        ui.columns(self.synth.measures_per_page as usize, |columns|{
 
-        let curr_channel = &mut self.synth.track.channels[self.selected_channel];
+            for current_column_index in 0 .. self.synth.measures_per_page{
 
-        ui.columns(self.synth.beats_per_measure as usize, |columns|{ 
-
-            //TODO move this to using slices
-            for i in 0 .. self.synth.beats_per_measure as usize{
-
-                let index = i + (self.selected_measure * self.synth.beats_per_measure as usize);
-
-                if curr_channel.len() <= index{
-                    println!("RustNES:note_stepper: Index out of bounds returning");
-                    return;
+                if current_column_index as usize >= columns.len(){
+                    println!("RustNES::note_stepper: current_page_index {} out of bounds", current_column_index);
+                    continue;
                 }
 
-                let curr: &mut synth::WaveColumn = &mut curr_channel[index];
-
-                for j in (0..12).rev(){
-                    let button = egui::Button::new("")
-                        .fill(
-                            if curr.is_selected(j) {self.selected_color} 
-                            else { self.unselected_color}
-                        )
-                        .sense(Sense{ click: true, drag: true, focusable: false });
-                    let response = button.ui(&mut columns[i]);
-
-                    // TODO Fix this mess
-                    // If the button is pressed, then select the current note
-                    if response.hovered() && !curr.is_selected(j) && response.ctx.input().pointer.any_down() && !self.pressed{
-                        curr.select(j);
-                        println!("{} {} dragged", j, response.ctx.input().pointer.any_down());
-                    }
-
-                    // On a drag, select multiple notes
-                    else if response.hovered() && response.ctx.input().pointer.any_pressed(){
-                        curr.select(j);
-                        println!("{} clicked", j);
-                        self.pressed = true;
-                        continue;
-                    }
-
-                    // To stop the notes from turning on and off, use a flag
-                    // Gross
-                    if response.ctx.input().pointer.any_released() {
-                        self.pressed = false;
-                    }
-                }
+                self.column_stepper(&mut columns[current_column_index as usize], current_column_index);
             }
         });
+    }
+
+    /// The current column being rendered
+    /// Spacing is set to 0,0 so that the notes sit right next to each other
+    fn column_stepper(&mut self, ui: &mut egui::Ui, current_column_index: u32){
+
+        let first_measure_index = self.selected_page as u32 * self.synth.get_notes_per_page();
+        ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
+
+        for row_index in (0 .. self.synth.rows_per_column).rev(){
+            ui.columns(4, |horizontal|{
+                for j in 0 .. self.synth.notes_per_measure{
+
+                    let column_index = first_measure_index + (current_column_index * self.synth.notes_per_measure) + j;
+                    //horizontal[j as usize].small_button("");
+                    self.column_button(&mut horizontal[j as usize], column_index, row_index)
+                }
+            });
+        }
+    }
+
+    /// The current button being rendered to the column
+    fn column_button(&mut self, ui: &mut egui::Ui, column_index: u32, row_index: u32){
+        let option_curr = self.synth.get_channel_column(column_index as usize, self.selected_channel);
+
+        match option_curr {
+            None => {
+                println!("RustNES::column_button: option is none");
+                return;
+            },
+            Some(curr) =>{
+    
+                let button = egui::Button::new("")
+                    .fill(
+                        if curr.is_selected(row_index) {self.selected_color} 
+                        else { self.unselected_color}
+                    )
+                    .small()
+                    .sense(Sense{ click: true, drag: true, focusable: false });
+                let response = button.ui(ui);
+            
+                // TODO Fix this mess
+                // If the button is pressed, then select the current note
+                if response.hovered() && !curr.is_selected(row_index) && response.ctx.input().pointer.any_down() && !self.pressed{
+                    curr.select(row_index);
+                    println!("{} {} selected", column_index, row_index);
+                }
+            
+                // On a drag, select multiple notes
+                else if response.hovered() && response.ctx.input().pointer.any_pressed(){
+                    curr.select(row_index);
+                    println!("{} {} selected", column_index, row_index);
+                    self.pressed = true;
+                }
+            
+                // To stop the notes from turning on and off, use a flag
+                // Gross
+                if response.ctx.input().pointer.any_released() {
+                    self.pressed = false;
+                }   
+            },
+        }
+            
     }
 
     /// The channel selector to be able to select which of the 4 main channels are being used.
@@ -225,9 +251,9 @@ impl RustNES{
     pub(crate) fn channel_selector(&mut self, ui: &mut egui::Ui){
         ui.separator();
 
-        ui.columns(self.synth.max_measures as usize, |columns|{ 
+        ui.columns(self.synth.max_pages as usize, |columns|{ 
 
-            for i in 0..self.synth.max_measures as usize{
+            for i in 0..self.synth.max_pages as usize{
 
                 columns[i].vertical_centered_justified(|centered|{
                     self.add_channel_column(centered, i)
@@ -243,9 +269,9 @@ impl RustNES{
         if measure_index < self.synth.get_measure_count(){
             if ui.button("–").clicked() {
                 let remove_amount = self.synth.get_measure_count() - measure_index;
-                self.synth.remove_measure(remove_amount);
-
-                self.selected_measure = self.synth.get_measure_count() - 1;
+                if self.synth.remove_measure(remove_amount) {
+                    self.selected_page = self.synth.get_measure_count() - 1;
+                }
             }
             
             for j in 0 .. self.synth.track.get_channel_count(){
@@ -253,12 +279,12 @@ impl RustNES{
                 if ui.add(
                 egui::Button::new(format!("{}",self.channel_symbol[j]))
                 .fill(
-                    if measure_index == self.selected_measure && j == self.selected_channel {self.selected_color} 
+                    if measure_index == self.selected_page && j == self.selected_channel {self.selected_color} 
                     else { self.unselected_color}
                 )).clicked(){
                     self.selected_channel = j;
-                    self.selected_measure = measure_index;
-                    println!("{},{}", self.selected_measure, self.selected_channel);
+                    self.selected_page = measure_index;
+                    println!("{},{}", self.selected_page, self.selected_channel);
                 };
             }
         }

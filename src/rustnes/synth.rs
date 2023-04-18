@@ -17,13 +17,17 @@ use crate::rustnes::waves;
 /// The struct that defines all of the synth values
 /// TODO make more of these variables private, and add getters and setters
 pub struct Synth{
-    pub inital_size: usize,
+    //pub inital_size: usize,
     
     pub track: Track,
     pub tempo: f32,
     pub volume: f32,
-    pub beats_per_measure: u32,
-    pub max_measures: u32,
+
+    pub notes_per_measure: u32,
+    pub measures_per_page: u32,
+    pub max_pages: u32,
+
+    pub rows_per_column: u32,
 
     stop_thread: Arc<AtomicBool>,
 }
@@ -33,22 +37,25 @@ impl Default for Synth{
 
         // The inital size of the window/measure
         // TODO make this more editable/ getters setters
-        Synth::new(8)
+        Synth::new(8, 4, 4)
     }
 }
 
 impl Synth{
-    pub fn new(initial_size: usize) -> Self{
+    pub fn new(max_pages: u32, notes_per_measure: u32, measures_per_page: u32) -> Self{
         Self { 
-            inital_size: initial_size,
-            track: Track::new(initial_size),
+            //inital_size: initial_size as usize,
+            track: Track::new(max_pages as usize * notes_per_measure as usize * 4),
 
             // The tempo is set to 960, as a note is technically only 1/16
             tempo: 960.0,
             volume: 100.0,
 
-            beats_per_measure: initial_size as u32,
-            max_measures: 16,
+            notes_per_measure: notes_per_measure,
+            measures_per_page: measures_per_page as u32,
+            max_pages: 4,
+
+            rows_per_column: 12,
 
             stop_thread: Arc::new(AtomicBool::new(false)),
         }
@@ -96,7 +103,7 @@ impl Synth{
     }
 
     pub fn new_track(&mut self){
-        self.track = Track::new(self.inital_size);
+        self.track = Track::new(self.get_notes_per_page() as usize);
     }
 
     pub fn add_measure(&mut self, amount: usize) -> bool{
@@ -105,7 +112,7 @@ impl Synth{
             return false;
         }
 
-        self.track.add_columns(amount * self.beats_per_measure as usize);
+        self.track.add_columns(amount * self.measures_per_page as usize);
         true
     }
 
@@ -115,24 +122,39 @@ impl Synth{
             return false;
         }
 
-        self.track.remove_columns(amount * self.beats_per_measure as usize);
+        self.track.remove_columns(amount * self.measures_per_page as usize);
         true
     }
 
     pub fn can_add_measure(&self, amount: usize) -> bool {
-        (self.track.get_length() as u32 + (amount as u32 * self.beats_per_measure)) <= (self.beats_per_measure * self.max_measures)
+        (self.track.get_length() as u32 + (amount as u32 * self.measures_per_page)) <= (self.measures_per_page * self.max_pages)
     }
 
     pub fn can_remove_measure(&self, amount: usize) -> bool {
-        (self.track.get_length() as u32) >= amount as u32 * self.beats_per_measure
+        (self.track.get_length() as u32) > amount as u32 * self.measures_per_page
     }
 
     pub fn get_measure_count(&self) -> usize{
-        (self.track.get_length() as u32 / self.beats_per_measure) as usize
+        (self.track.get_length() as u32 / self.measures_per_page) as usize
     }
 
     pub fn get_beats_per_second(&self) -> f32 {
         self.tempo / 60.0
+    }
+
+    pub fn get_channel_column(&mut self, column_index: usize, selected_channel: usize) -> Option<&mut WaveColumn>{
+        if selected_channel >= self.track.channels.len() {
+            println!("Synth::get_channel_column: selected_channel {} out of bounds", selected_channel);
+            return None;
+        }
+        let current_channel = &mut self.track.channels[selected_channel];
+
+        if column_index >= current_channel.len(){
+            println!("Synth::get_channel_column: column_index {} out of bounds", column_index);
+            return None;
+        }
+
+        Some(&mut current_channel[column_index])
     }
 
     pub fn save_track(&self, path: PathBuf) -> std::io::Result<()> {
@@ -153,6 +175,10 @@ impl Synth{
         
         // TODO make this not just send an Ok
         Ok(())
+    }
+
+    pub fn get_notes_per_page(&self) -> u32{
+        self.notes_per_measure * self.measures_per_page
     }
 }
 
@@ -243,7 +269,7 @@ impl WaveColumn{
 
     /// Select the note pressed. ANDs the number to clear everything but the selected,
     /// then XORs the number to create a toggle
-    pub(crate) fn select(&mut self, index: u16){
+    pub(crate) fn select(&mut self, index: u32){
         let b = 1 << index;
 
         self.column &= b;
@@ -251,7 +277,7 @@ impl WaveColumn{
     }
 
     /// Checks if the current note is selected
-    pub(crate) fn is_selected(&self, index: u16) -> bool{
+    pub(crate) fn is_selected(&self, index: u32) -> bool{
         self.column == 1 << index
     }
 
