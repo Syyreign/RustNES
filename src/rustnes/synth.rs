@@ -55,7 +55,7 @@ impl Synth{
             measures_per_page: measures_per_page as u32,
             max_pages: 4,
 
-            rows_per_column: 12,
+            rows_per_column: 24,
 
             stop_thread: Arc::new(AtomicBool::new(false)),
         }
@@ -253,7 +253,7 @@ impl Track{
 /// to keep from needing a large array of bools.
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct WaveColumn {
-    column: u16,
+    column: u32,
 }
 
 impl Default for WaveColumn {
@@ -286,7 +286,7 @@ impl WaveColumn{
     pub(crate) fn get_index(&self) -> i32{
         let index = self.column.trailing_zeros();
 
-        if index == 16 {
+        if index == 32 {
             return -1;
         }
 

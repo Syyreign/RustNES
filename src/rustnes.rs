@@ -14,6 +14,9 @@ pub(crate) struct RustNES {
 
     pub(crate) unselected_color: Color32,
     pub(crate) selected_color: Color32,
+    pub(crate) highlight_color: Color32,
+
+    pub(crate) row_highlight_interval: u32,
 
     pub(crate) selected_channel: usize,
     pub(crate) selected_page: usize,
@@ -31,6 +34,9 @@ impl Default for RustNES {
             synth: synth::Synth::new(8, 4, 8),
             unselected_color: Color32::from_rgb(100, 100, 100),
             selected_color: Color32::from_rgb(80, 200, 80),
+            highlight_color: Color32::from_rgb(50, 80, 50),
+
+            row_highlight_interval: 8,
 
             selected_channel: 0,
             selected_page: 0,
@@ -214,8 +220,10 @@ impl RustNES{
             Some(curr) =>{
     
                 let button = egui::Button::new("")
+                    // TODO move this into a function
                     .fill(
-                        if curr.is_selected(row_index) {self.selected_color} 
+                        if curr.is_selected(row_index) {self.selected_color}
+                        else if row_index % self.row_highlight_interval == 0 {self.highlight_color}
                         else { self.unselected_color}
                     )
                     .small()
@@ -298,5 +306,9 @@ impl RustNES{
                 self.synth.add_measure(add_amount);
             }
         }
+    }
+    
+    fn get_button_color(&self){
+
     }
 }

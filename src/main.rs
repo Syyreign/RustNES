@@ -5,8 +5,8 @@ mod rustnes;
 fn main() {
 
     let options = eframe::NativeOptions {
-        initial_window_size: Some(egui::vec2(400.0, 475.0)),
-        min_window_size: Some(egui::vec2(400.0, 475.0)),
+        initial_window_size: Some(egui::vec2(400.0, 550.0)),
+        min_window_size: Some(egui::vec2(400.0, 550.0)),
         ..Default::default()
     };
     eframe::run_native(
