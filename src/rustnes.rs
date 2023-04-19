@@ -147,7 +147,7 @@ impl RustNES{
         }
 
         if ui.button("Play NES Pulse").clicked(){
-            //synth::play_nes_pulse_wave(20);
+            synth::play_nes_pulse_wave(20);
         }
 
         if ui.button("Play NES Noise").clicked(){
@@ -246,7 +246,7 @@ impl RustNES{
             
                 if response.hovered() && curr.is_selected(row_index) && response.ctx.input().pointer.secondary_down(){
                     curr.remove();
-                    println!("{} {} removed", column_index, row_index);
+                    //println!("{} {} removed", column_index, row_index);
                     self.pressed = false;
                     return;
                 } 
@@ -255,14 +255,14 @@ impl RustNES{
                 // If the button is pressed, then select the current note
                 if response.hovered() && !curr.is_selected(row_index) && response.ctx.input().pointer.primary_down() && !self.pressed{
                     curr.select(row_index);
-                    println!("{} {} selected", column_index, row_index);
-                    self.synth.play_note(self.selected_channel as u32, row_index as i32);
+                    //println!("{} {} selected", column_index, row_index);
+                    self.synth.play_note(self.selected_channel as u32, row_index as i32 + 36);
                 }
             
                 // On a drag, select multiple notes
                 else if response.hovered() && response.ctx.input().pointer.primary_clicked(){
                     curr.select(row_index);
-                    println!("{} {} clicked", column_index, row_index);
+                    //println!("{} {} clicked", column_index, row_index);
                     self.pressed = true;
                 }
             

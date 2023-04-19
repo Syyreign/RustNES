@@ -25,7 +25,6 @@ pub struct Synth{
 
     pub notes_per_measure: u32,
     pub measures_per_page: u32,
-    //pub max_pages: u32,
 
     pub rows_per_column: u32,
 
@@ -53,7 +52,6 @@ impl Synth{
 
             notes_per_measure: notes_per_measure,
             measures_per_page: measures_per_page as u32,
-            //max_pages: 4,
 
             rows_per_column: 24,
 
@@ -330,6 +328,7 @@ pub(crate) fn play_nes_triangle_wave(index: i32){
     thread::spawn(move ||{
         let mut source = waves::NESTriangleWaveNote::new(index)
             .amplify(0.05)
+            .fade_in(Duration::from_secs_f32(0.03))
             .take_duration(Duration::from_secs_f32(0.2));
 
         source.set_filter_fadeout();
@@ -350,6 +349,7 @@ pub(crate) fn play_nes_pulse_wave(index: i32){
     thread::spawn(move ||{
         let mut source = waves::NESPulseWaveNote::new(index, 0.5)
             .amplify(0.05)
+            .fade_in(Duration::from_secs_f32(0.03))
             .take_duration(Duration::from_secs_f32(0.2));
         
         source.set_filter_fadeout();
@@ -367,15 +367,18 @@ pub(crate) fn play_nes_pulse_wave(index: i32){
 /// Simple rodio sink to play a sine wave
 /// 
 pub(crate) fn play_nes_noise(){
-    let mut source = waves::NESNoiseNote::new()
-        .amplify(0.05)
-        .take_duration(Duration::from_secs_f32(0.2));
+    thread::spawn(move ||{
+        let mut source = waves::NESNoiseNote::new()
+            .amplify(0.05)
+            .fade_in(Duration::from_secs_f32(0.03))
+            .take_duration(Duration::from_secs_f32(0.2));
 
-    source.set_filter_fadeout();
+        source.set_filter_fadeout();
 
-    let (_stream, stream_handle) = OutputStream::try_default().unwrap();
-    let sink = Sink::try_new(&stream_handle).unwrap();
+        let (_stream, stream_handle) = OutputStream::try_default().unwrap();
+        let sink = Sink::try_new(&stream_handle).unwrap();
 
-    sink.append(source);
-    sink.sleep_until_end();
+        sink.append(source);
+        sink.sleep_until_end();
+    });
 }
