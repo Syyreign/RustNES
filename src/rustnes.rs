@@ -259,26 +259,25 @@ impl RustNES{
     pub(crate) fn channel_selector(&mut self, ui: &mut egui::Ui){
         ui.separator();
 
-        ui.columns(self.synth.max_pages as usize, |columns|{ 
-
-            for i in 0..self.synth.max_pages as usize{
-
-                columns[i].vertical_centered_justified(|centered|{
-                    self.add_channel_column(centered, i)
-                });
-            }
-
+        egui::ScrollArea::horizontal().show(ui, |ui| {
+            egui::Grid::new("channel_grid").show(ui, |ui| {
+                for i in 0..self.synth.max_pages as usize{
+                    ui.vertical_centered_justified(|vertical|{
+                        self.subtract_channel_columns(vertical, i);
+                    });
+                }
+                self.add_channel_columns(ui);
+            });
         });
     }
 
     /// Adds the channel controls and allows selecting specific channels and measure
-    fn add_channel_column(&mut self, ui: &mut egui::Ui, measure_index: usize){
+    fn subtract_channel_columns(&mut self, ui: &mut egui::Ui, measure_index: usize){
         // If the index is less than current measure, then add the channel column
-        if measure_index < self.synth.get_measure_count(){
             if ui.button("–").clicked() {
-                let remove_amount = self.synth.get_measure_count() - measure_index;
-                if self.synth.remove_measure(remove_amount) {
-                    self.selected_page = self.synth.get_measure_count() - 1;
+                let remove_amount = self.synth.max_pages as usize - measure_index;
+                if self.synth.remove_page(remove_amount) {
+                    self.selected_page = self.synth.max_pages as usize - 1;
                 }
             }
             
@@ -289,26 +288,20 @@ impl RustNES{
                 .fill(
                     if measure_index == self.selected_page && j == self.selected_channel {self.selected_color} 
                     else { self.unselected_color}
-                )).clicked(){
+                ))
+                .clicked(){
                     self.selected_channel = j;
                     self.selected_page = measure_index;
                     println!("{},{}", self.selected_page, self.selected_channel);
                 };
             }
-        }
-
-        // If the index is greater than the measure, then show the "+" for the column
-        // When the index is greater, than the columns hasnt been activated yet
-        else{
-            if ui.button("+").clicked() {
-                let add_amount = (measure_index + 1) - self.synth.get_measure_count();
-
-                self.synth.add_measure(add_amount);
-            }
-        }
     }
-    
-    fn get_button_color(&self){
 
+    fn add_channel_columns(&mut self, ui: &mut egui::Ui,){
+        ui.group(|ui|{
+            if ui.button("+").clicked() {
+                self.synth.add_page(1);
+            }
+        });
     }
 }

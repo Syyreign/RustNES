@@ -1,4 +1,4 @@
-use std::{time::Duration};
+use std::{time::Duration, sync::{atomic::AtomicBool, Arc}};
 use rand::Rng;
 
 use crate::Source;
@@ -51,6 +51,7 @@ impl Oscillators {
             high_pass_filter1: filters::HighPassFilter::default(),
             high_pass_filter2: filters::HighPassFilter::default(),
         }
+
     }
 }
 

@@ -106,36 +106,25 @@ impl Synth{
         self.track = Track::new(self.get_notes_per_page() as usize);
     }
 
-    pub fn add_measure(&mut self, amount: usize) -> bool{
-        if !self.can_add_measure(amount){
-            println!("Synth::add_measure: Can't add any more notes to the track");
-            return false;
-        }
-
-        self.track.add_columns(amount * self.measures_per_page as usize);
+    pub fn add_page(&mut self, amount: usize) -> bool{
+        self.max_pages += amount as u32;
+        self.track.add_columns(amount * self.get_notes_per_page() as usize);
         true
     }
 
-    pub fn remove_measure(&mut self, amount: usize) -> bool{
+    pub fn remove_page(&mut self, amount: usize) -> bool{
         if !self.can_remove_measure(amount) { 
             println!("Synth::remove_measure: Can't remove any more notes from the track");
             return false;
         }
 
-        self.track.remove_columns(amount * self.measures_per_page as usize);
+        self.max_pages -= amount as u32;
+        self.track.remove_columns(amount * self.get_notes_per_page() as usize);
         true
     }
 
-    pub fn can_add_measure(&self, amount: usize) -> bool {
-        (self.track.get_length() as u32 + (amount as u32 * self.measures_per_page)) <= (self.measures_per_page * self.max_pages)
-    }
-
     pub fn can_remove_measure(&self, amount: usize) -> bool {
-        (self.track.get_length() as u32) > amount as u32 * self.measures_per_page
-    }
-
-    pub fn get_measure_count(&self) -> usize{
-        (self.track.get_length() as u32 / self.measures_per_page) as usize
+        (self.track.get_length() as u32) > amount as u32 * self.get_notes_per_page()
     }
 
     pub fn get_beats_per_second(&self) -> f32 {
