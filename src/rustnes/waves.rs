@@ -1,4 +1,4 @@
-use std::{time::Duration, sync::{atomic::AtomicBool, Arc}};
+use std::{time::Duration};
 use rand::Rng;
 
 use crate::Source;
@@ -138,9 +138,6 @@ impl NESTriangleWave {
             steps: [-1.0, -0.86666, -0.73333, -0.6, -0.46666, -0.33333, -0.2, -0.06666, 0.06666, 0.2, 0.33333, 0.46666, 0.6, 0.73333, 0.86666, 1.0],
         }
     }
-}
- 
-impl NESTriangleWave {
 
     ///
     /// This function imitates the NES triangle wave
@@ -235,9 +232,6 @@ impl NESNoise {
         }
     }
     
-}
- 
-impl NESNoise {
     ///
     /// This function imitates the NES Noise
     /// 
@@ -264,4 +258,211 @@ fn get_frequency(note: i32) -> f32{
     
     // 17789773 is the NES CPU clock rate for NTSC
     (1789773 / (16 * (PERIODS[note as usize] + 1))) as f32
+}
+
+/// 
+/// Creates a triangle wave using 16 steps. This is a limitation of the NES and 
+/// what gives it a unique sound
+/// Always has a rate of 48kHz and one channel.
+/// 
+#[derive(Clone, Debug)]
+pub struct NESTriangleWaveNote {
+    freq: f32,
+    num_sample: usize,
+    steps: [f32;16],
+}
+
+impl NESTriangleWaveNote {
+    /// The frequency of the sine.
+    #[inline]
+    pub fn new(index: i32) -> NESTriangleWaveNote {
+
+        let mut freq = 0.0;
+        if index >= 0 {
+            freq = get_frequency(index);
+        }
+
+        NESTriangleWaveNote {
+            freq: freq,
+            num_sample: 0,
+
+            // The steps of the triangle wave
+            steps: [-1.0, -0.86666, -0.73333, -0.6, -0.46666, -0.33333, -0.2, -0.06666, 0.06666, 0.2, 0.33333, 0.46666, 0.6, 0.73333, 0.86666, 1.0],
+        }
+    }
+}
+ 
+impl Iterator for NESTriangleWaveNote {
+    type Item = f32;
+
+    ///
+    /// This function imitates the NES triangle wave
+    /// This could probably be generalized more
+    /// TODO double check this is correct!
+    /// 
+    #[inline]
+    fn next(&mut self) -> Option<f32> {
+        self.num_sample = self.num_sample.wrapping_add(1);
+
+        let freq_ratio = self.freq / 48000.0;
+
+        // Create a triangle wave, from 0-15 as float values
+        let mut x = ((((self.num_sample as f32 * 30.0) * freq_ratio) % 30.0) - 15.0).abs();
+
+        // Round the float values to indexes of an array corresponsing to the stepped triangle wave
+        x = x.round();
+
+        Some(self.steps[x as usize])
+    }
+}
+
+impl Source for NESTriangleWaveNote {
+    #[inline]
+    fn current_frame_len(&self) -> Option<usize> {
+        None
+    }
+
+    #[inline]
+    fn channels(&self) -> u16 {
+        1
+    }
+
+    #[inline]
+    fn sample_rate(&self) -> u32 {
+        48000
+    }
+
+    #[inline]
+    fn total_duration(&self) -> Option<Duration> {
+        None
+    }
+}
+
+/// 
+/// Creates pulse wave
+/// Always has a rate of 48kHz and one channel.
+/// 
+#[derive(Clone, Debug)]
+pub struct NESPulseWaveNote {
+    freq: f32,
+    duty: f32,
+    num_sample: usize,
+}
+
+impl NESPulseWaveNote {
+    /// The frequency of the sine.
+    /// Duty is time of each pulse. 0.5 is a square wave
+    #[inline]
+    pub fn new(index: i32, duty: f32) -> NESPulseWaveNote {
+
+        let mut freq = 0.0;
+        if index >= 0 {
+            freq = get_frequency(index);
+        }
+
+        NESPulseWaveNote {
+            freq: freq,
+            duty: duty,
+            num_sample: 0,
+        }
+    }
+}
+ 
+impl Iterator for NESPulseWaveNote {
+    type Item = f32;
+
+    ///
+    /// This function imitates the NES Pulse wave
+    /// 
+    #[inline]
+    fn next(&mut self) -> Option<f32> {
+        self.num_sample = self.num_sample.wrapping_add(1);
+
+        // Messy, should be cleaned up a bit
+        // Divide the 48000 into segments of self.freq, then checks if the current sample
+        // is less than half of that. If it is then return 0.0 otherwise return 1.0
+        if (self.num_sample as f32 % (48000.0 / self.freq)) < (48000.0 / self.freq) * self.duty {
+            return Some(0.0)
+        }
+
+        Some(1.0)
+    }
+}
+
+impl Source for NESPulseWaveNote {
+    #[inline]
+    fn current_frame_len(&self) -> Option<usize> {
+        None
+    }
+
+    #[inline]
+    fn channels(&self) -> u16 {
+        1
+    }
+
+    #[inline]
+    fn sample_rate(&self) -> u32 {
+        48000
+    }
+
+    #[inline]
+    fn total_duration(&self) -> Option<Duration> {
+        None
+    }
+}
+
+/// 
+/// Creates noise using 16 steps. This is a limitation of the NES and 
+/// what gives it a unique sound
+/// Always has a rate of 48kHz and one channel.
+/// 
+#[derive(Clone, Debug)]
+pub struct NESNoiseNote {
+    steps: [f32;16],
+}
+
+impl NESNoiseNote {
+    #[inline]
+    pub fn new() -> NESNoiseNote {
+        NESNoiseNote {
+            // The steps that the noise can produce
+            steps: [-1.0, -0.86666, -0.73333, -0.6, -0.46666, -0.33333, -0.2, -0.06666, 0.06666, 0.2, 0.33333, 0.46666, 0.6, 0.73333, 0.86666, 1.0],
+        }
+    }
+}
+ 
+impl Iterator for NESNoiseNote {
+    type Item = f32;
+
+    ///
+    /// This function imitates the NES Noise
+    /// 
+    #[inline]
+    fn next(&mut self) -> Option<f32> {
+        let x = rand::thread_rng().gen_range(0..self.steps.len());
+
+        Some(self.steps[x])
+    }
+}
+
+impl Source for NESNoiseNote {
+    #[inline]
+    fn current_frame_len(&self) -> Option<usize> {
+        None
+    }
+
+    #[inline]
+    fn channels(&self) -> u16 {
+        1
+    }
+
+    #[inline]
+    fn sample_rate(&self) -> u32 {
+        48000
+    }
+
+    #[inline]
+    fn total_duration(&self) -> Option<Duration> {
+        None
+    }
 }

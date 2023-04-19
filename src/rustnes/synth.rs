@@ -25,7 +25,7 @@ pub struct Synth{
 
     pub notes_per_measure: u32,
     pub measures_per_page: u32,
-    pub max_pages: u32,
+    //pub max_pages: u32,
 
     pub rows_per_column: u32,
 
@@ -53,7 +53,7 @@ impl Synth{
 
             notes_per_measure: notes_per_measure,
             measures_per_page: measures_per_page as u32,
-            max_pages: 4,
+            //max_pages: 4,
 
             rows_per_column: 24,
 
@@ -66,10 +66,12 @@ impl Synth{
         // Stop any threads that are playing
         self.stop();
 
+        let sliced_track = Track::slice_new(0, &self.track);
+
         // The length that the sound should play for
         let length = self.track.get_length() as f32 * self.get_beats_per_second();
 
-        let source = waves::Oscillators::new(&self.track, self.tempo)
+        let source = waves::Oscillators::new(&sliced_track, self.tempo)
             .take_duration(Duration::from_secs_f32(length))
             .amplify(self.volume / 100.0);
 
@@ -102,12 +104,23 @@ impl Synth{
         self.stop_thread.store(true, Ordering::Relaxed);
     }
 
+    pub fn play_note(&self, selected_channel: u32, index: i32){
+        println!("playing note");
+        match selected_channel{
+            0 | 1 => play_nes_pulse_wave(index),
+            2 => play_nes_triangle_wave(index),
+            3 => play_nes_noise(),
+            _ => println!("Bad Channel"),
+        }
+        
+    }
+
     pub fn new_track(&mut self){
-        self.track = Track::new(self.get_notes_per_page() as usize);
+        self.track = Track::new(self.track.get_length() as usize);
     }
 
     pub fn add_page(&mut self, amount: usize) -> bool{
-        self.max_pages += amount as u32;
+        self.track.page_count += amount as u32;
         self.track.add_columns(amount * self.get_notes_per_page() as usize);
         true
     }
@@ -118,7 +131,7 @@ impl Synth{
             return false;
         }
 
-        self.max_pages -= amount as u32;
+        self.track.page_count -= amount as u32;
         self.track.remove_columns(amount * self.get_notes_per_page() as usize);
         true
     }
@@ -176,6 +189,7 @@ impl Synth{
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Track{
     pub(crate) channels: [Vec<WaveColumn>; 4],
+    pub(crate) page_count: u32,
 }
 
 
@@ -198,7 +212,26 @@ impl Track{
             vec![WaveColumn::default(); initial_size], 
             vec![WaveColumn::default(); initial_size], 
             vec![WaveColumn::default(); initial_size]],
+            page_count: 4,
         }
+    }
+
+    pub fn slice_new(start: usize, track: &Track) -> Self{
+        let initial_size = track.get_length() - start;
+
+        let mut sliced_track = Self {  
+            channels: [vec![WaveColumn::default(); initial_size], 
+            vec![WaveColumn::default(); initial_size], 
+            vec![WaveColumn::default(); initial_size], 
+            vec![WaveColumn::default(); initial_size]],
+            page_count: 4,
+        };
+
+        for i in 0 .. sliced_track.channels.len(){
+            sliced_track.channels[i] = track.channels[i].to_vec();
+        }
+
+        sliced_track
     }
 
     /// Gets the amount of notes in the track
@@ -270,6 +303,10 @@ impl WaveColumn{
         self.column == 1 << index
     }
 
+    pub(crate) fn remove(&mut self){
+        self.column &= 0;
+    }
+
     /// Returns the index of the current columns note
     /// If non selected, return -1
     pub(crate) fn get_index(&self) -> i32{
@@ -289,28 +326,40 @@ impl WaveColumn{
 /// Temporarily moved here
 /// Simple rodio sink to play an NES triangle wave
 /// 
-pub(crate) fn play_nes_triangle_wave(_freq: f32){
-    // let source = waves::NESTriangleWave::new(freq).take_duration(Duration::from_secs_f32(1.0));
+pub(crate) fn play_nes_triangle_wave(index: i32){
+    thread::spawn(move ||{
+        let mut source = waves::NESTriangleWaveNote::new(index)
+            .amplify(0.05)
+            .take_duration(Duration::from_secs_f32(0.2));
 
-    // let (_stream, stream_handle) = OutputStream::try_default().unwrap();
-    // let sink = Sink::try_new(&stream_handle).unwrap();
+        source.set_filter_fadeout();
 
-    // sink.append(source);
-    // sink.sleep_until_end();
+        let (_stream, stream_handle) = OutputStream::try_default().unwrap();
+        let sink = Sink::try_new(&stream_handle).unwrap();
+
+        sink.append(source);
+        sink.sleep_until_end();
+    });
 }
 
 ///
 /// Temporarily moved here
 /// Simple rodio sink to play an NES pulse wave
 /// 
-pub(crate) fn play_nes_pulse_wave(_freq: f32){
-    // let source = waves::NESPulseWave::new(freq, 0.5).take_duration(Duration::from_secs_f32(1.0));
+pub(crate) fn play_nes_pulse_wave(index: i32){
+    thread::spawn(move ||{
+        let mut source = waves::NESPulseWaveNote::new(index, 0.5)
+            .amplify(0.05)
+            .take_duration(Duration::from_secs_f32(0.2));
+        
+        source.set_filter_fadeout();
 
-    // let (_stream, stream_handle) = OutputStream::try_default().unwrap();
-    // let sink = Sink::try_new(&stream_handle).unwrap();
+        let (_stream, stream_handle) = OutputStream::try_default().unwrap();
+        let sink = Sink::try_new(&stream_handle).unwrap();
 
-    // sink.append(source);
-    // sink.sleep_until_end();
+        sink.append(source);
+        sink.sleep_until_end();
+    });
 }
 
 ///
@@ -318,11 +367,15 @@ pub(crate) fn play_nes_pulse_wave(_freq: f32){
 /// Simple rodio sink to play a sine wave
 /// 
 pub(crate) fn play_nes_noise(){
-    // let source = waves::NESNoise::new().take_duration(Duration::from_secs_f32(1.0));
+    let mut source = waves::NESNoiseNote::new()
+        .amplify(0.05)
+        .take_duration(Duration::from_secs_f32(0.2));
 
-    // let (_stream, stream_handle) = OutputStream::try_default().unwrap();
-    // let sink = Sink::try_new(&stream_handle).unwrap();
+    source.set_filter_fadeout();
 
-    // sink.append(source);
-    // sink.sleep_until_end();
+    let (_stream, stream_handle) = OutputStream::try_default().unwrap();
+    let sink = Sink::try_new(&stream_handle).unwrap();
+
+    sink.append(source);
+    sink.sleep_until_end();
 }

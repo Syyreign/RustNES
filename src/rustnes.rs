@@ -15,9 +15,11 @@ pub(crate) struct RustNES {
     pub(crate) unselected_color: Color32,
     pub(crate) selected_color: Color32,
     pub(crate) highlight_color: Color32,
+    pub(crate) scrubber_color: Color32,
 
     pub(crate) row_highlight_interval: u32,
 
+    pub(crate) scrubber_start: usize,
     pub(crate) selected_channel: usize,
     pub(crate) selected_page: usize,
 
@@ -34,10 +36,12 @@ impl Default for RustNES {
             synth: synth::Synth::new(8, 4, 8),
             unselected_color: Color32::from_rgb(100, 100, 100),
             selected_color: Color32::from_rgb(80, 200, 80),
-            highlight_color: Color32::from_rgb(50, 80, 50),
+            highlight_color: Color32::from_rgb(60, 80, 60),
+            scrubber_color: Color32::from_rgb(60, 120, 60),
 
             row_highlight_interval: 8,
 
+            scrubber_start: 0,
             selected_channel: 0,
             selected_page: 0,
 
@@ -139,11 +143,11 @@ impl RustNES{
     /// This menu should only be visible in debug mode
     pub(crate) fn debug_menu(ui: &mut egui::Ui) {
         if ui.button("Play NES Triangle").clicked(){
-            synth::play_nes_triangle_wave(440.0);
+            synth::play_nes_triangle_wave(20);
         }
 
         if ui.button("Play NES Pulse").clicked(){
-            synth::play_nes_pulse_wave(440.0);
+            //synth::play_nes_pulse_wave(20);
         }
 
         if ui.button("Play NES Noise").clicked(){
@@ -177,34 +181,43 @@ impl RustNES{
     pub(crate) fn note_stepper(&mut self, ui: &mut egui::Ui){
         ui.columns(self.synth.measures_per_page as usize, |columns|{
 
-            for current_column_index in 0 .. self.synth.measures_per_page{
+            for column_index in 0 .. self.synth.measures_per_page{
 
-                if current_column_index as usize >= columns.len(){
-                    println!("RustNES::note_stepper: current_page_index {} out of bounds", current_column_index);
+                if column_index as usize >= columns.len(){
+                    println!("RustNES::note_stepper: current_page_index {} out of bounds", column_index);
                     continue;
                 }
 
-                self.column_stepper(&mut columns[current_column_index as usize], current_column_index);
+                self.stepper_column(&mut columns[column_index as usize], column_index);
             }
         });
     }
 
     /// The current column being rendered
     /// Spacing is set to 0,0 so that the notes sit right next to each other
-    fn column_stepper(&mut self, ui: &mut egui::Ui, current_column_index: u32){
+    fn stepper_column(&mut self, ui: &mut egui::Ui, current_column_index: u32){
 
         let first_measure_index = self.selected_page as u32 * self.synth.get_notes_per_page();
         ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
 
         for row_index in (0 .. self.synth.rows_per_column).rev(){
-            ui.columns(4, |horizontal|{
+            ui.columns(4, |columns|{
                 for j in 0 .. self.synth.notes_per_measure{
 
                     let column_index = first_measure_index + (current_column_index * self.synth.notes_per_measure) + j;
-                    //horizontal[j as usize].small_button("");
-                    self.column_button(&mut horizontal[j as usize], column_index, row_index)
+
+                    if row_index == self.synth.rows_per_column - 1{
+                        self.scrubber_button(&mut columns[j as usize], column_index);
+                    }
+                    self.column_button(&mut columns[j as usize], column_index, row_index)
                 }
             });
+        }
+    }
+
+    fn scrubber_button(&mut self, ui: &mut egui::Ui, column_index: u32){
+        if ui.small_button("").clicked(){
+            self.scrubber_start = column_index as usize;
         }
     }
 
@@ -220,9 +233,10 @@ impl RustNES{
             Some(curr) =>{
     
                 let button = egui::Button::new("")
-                    // TODO move this into a function
+                    // TODO move this into a function, and fix this mess
                     .fill(
                         if curr.is_selected(row_index) {self.selected_color}
+                        else if column_index as usize == self.scrubber_start {self.scrubber_color}
                         else if row_index % self.row_highlight_interval == 0 {self.highlight_color}
                         else { self.unselected_color}
                     )
@@ -230,23 +244,31 @@ impl RustNES{
                     .sense(Sense{ click: true, drag: true, focusable: false });
                 let response = button.ui(ui);
             
+                if response.hovered() && curr.is_selected(row_index) && response.ctx.input().pointer.secondary_down(){
+                    curr.remove();
+                    println!("{} {} removed", column_index, row_index);
+                    self.pressed = false;
+                    return;
+                } 
+
                 // TODO Fix this mess
                 // If the button is pressed, then select the current note
-                if response.hovered() && !curr.is_selected(row_index) && response.ctx.input().pointer.any_down() && !self.pressed{
+                if response.hovered() && !curr.is_selected(row_index) && response.ctx.input().pointer.primary_down() && !self.pressed{
                     curr.select(row_index);
                     println!("{} {} selected", column_index, row_index);
+                    self.synth.play_note(self.selected_channel as u32, row_index as i32);
                 }
             
                 // On a drag, select multiple notes
-                else if response.hovered() && response.ctx.input().pointer.any_pressed(){
+                else if response.hovered() && response.ctx.input().pointer.primary_clicked(){
                     curr.select(row_index);
-                    println!("{} {} selected", column_index, row_index);
+                    println!("{} {} clicked", column_index, row_index);
                     self.pressed = true;
                 }
             
                 // To stop the notes from turning on and off, use a flag
                 // Gross
-                if response.ctx.input().pointer.any_released() {
+                if response.ctx.input().pointer.primary_released() {
                     self.pressed = false;
                 }   
             },
@@ -261,7 +283,7 @@ impl RustNES{
 
         egui::ScrollArea::horizontal().show(ui, |ui| {
             egui::Grid::new("channel_grid").show(ui, |ui| {
-                for i in 0..self.synth.max_pages as usize{
+                for i in 0..self.synth.track.page_count as usize{
                     ui.vertical_centered_justified(|vertical|{
                         self.subtract_channel_columns(vertical, i);
                     });
@@ -275,9 +297,9 @@ impl RustNES{
     fn subtract_channel_columns(&mut self, ui: &mut egui::Ui, measure_index: usize){
         // If the index is less than current measure, then add the channel column
             if ui.button("–").clicked() {
-                let remove_amount = self.synth.max_pages as usize - measure_index;
+                let remove_amount = self.synth.track.page_count as usize - measure_index;
                 if self.synth.remove_page(remove_amount) {
-                    self.selected_page = self.synth.max_pages as usize - 1;
+                    self.selected_page = self.synth.track.page_count as usize - 1;
                 }
             }
             
