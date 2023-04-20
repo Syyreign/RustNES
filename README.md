@@ -4,6 +4,9 @@
 ---
 Retro chiptune music is starting to make a resurgence with the popularity of many retro indie games like Hades and Celeste. One of the reasons why it's gaining its popularity again is because it resonates with a lot of people; it brings back nostalgia and fond memory associated with it. However, a majority of music produced for these games rarely use actual hardware that made the 8-bit and 16-bit music charming. The purpose of this project is to replicate a sound chip from the NES (Nintendo Entertainment System) using Rust, and bring back those memories to the users.
 
+## Demo
+[![Watch the video](https://img.youtube.com/vi/UkP5NZZ0tf8/default.jpg)](https://www.youtube.com/watch?v=UkP5NZZ0tf8)
+
 ## Milestones
 ---
 ### Milestone 1 (worst case scenario):
