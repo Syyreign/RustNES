@@ -40,8 +40,7 @@ TODO
 - NES non-linear Mixer
 - File saving and loading using the custom extension `.rsf` (RustNES Sound Format)
 - The GUI
-<img width="300" alt="NES_GUI" src="https://user-images.githubusercontent.com/7028156/232274732-fdadd3b3-a00d-450a-b616-97cfe4465e73.png">
-
+<img width="300" alt="NES_GUI" src="https://user-images.githubusercontent.com/7028156/233228911-59ea7c7f-a47a-4d90-84c4-fba33d0df45b.png">
 
 ### David Kim
 TODO
