@@ -31,10 +31,10 @@ in quality.
 ## Contributions
 
 ### Cy Chung
-TODO
+- README/Documentation
 
 ### Jae Park
-TODO
+- README/Documentation
 
 ### Spencer Hart
 - Create base code
@@ -45,17 +45,6 @@ TODO
 - The GUI
 <img width="300" alt="NES_GUI" src="https://user-images.githubusercontent.com/7028156/233228911-59ea7c7f-a47a-4d90-84c4-fba33d0df45b.png">
 
-### David Kim
-TODO
-
-### Ethan Slogotski
-TODO
-
-### Francis German
-TODO
-
-### Skylar Buck
-TODO
 
 ## Resources
 ---
