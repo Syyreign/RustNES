@@ -1,13 +1,25 @@
-# RustNES (IN_PROGRESS)
+# RustNES
 
 ## Description
 ---
-Retro chiptune music is starting to make a resurgence with the popularity of many retro indie games like Hades and Celeste. One of the reasons why it's gaining its popularity again is because it resonates with a lot of people; it brings back nostalgia and fond memory associated with it. However, a majority of music produced for these games rarely use actual hardware that made the 8-bit and 16-bit music charming. The purpose of this project is to replicate a sound chip from the NES (Nintendo Entertainment System) using Rust, and bring back those memories to the users.
+RustNES is a NES music creation tool written entirely in Rust. While not entirely faithful to the NES sound, it's a first attempt at a modern recreation.
 
 ## Demo
 [![Watch the video](https://img.youtube.com/vi/UkP5NZZ0tf8/default.jpg)](https://www.youtube.com/watch?v=UkP5NZZ0tf8)
 
-## Milestones
+## How to use RustNES
+
+RustNES is a sequencer that has the ability to make music using 4 channels. 2 pulse waves, 1 triangle, and 1 noise channel. Song can be played, and saved to file using a custom file format .rsf (RustNES Save Format). 
+
+RustNES has 2 main sections; the note sequencer, and the channel selector. 
+
+### The Note Sequencer
+The note stepper allows the user to select the pitch of an individual note. A note can be individually left clicked to change one notes pitch, or dragged to select multiple at once. The pitch of a note will be played played upon selection to help song creation. To remove a note, hold down right click on a note.
+
+### The Channel Selector
+RustNES allows the user change which channel is selected using the channel selector on the bottom of the window. Each channel has a corresponding symbol for easy understanding. The channels in each column all play in parallel, allowing more advanced music creation. To increase the length of a song, press the large button with a "+". To shorten the song press one of the "-" buttons above a channel. 
+
+## Original Milestones
 ---
 ### Milestone 1 (worst case scenario):
 >* Basic audio generator that can produce 8-bit sound based on user's keyboard input.
@@ -24,9 +36,26 @@ We could test this function by comparing the visualization with other pre-existi
 This also can be tested by utilizing other services, such as spotify's equalizer function and comparing the difference 
 in quality.
 
+## Milestone Postmortem
+The original milestone were set early in the project timeline. As people realised that other courses were taking most of their time, there was less work being added to the main repository. This repository can be seen as a hard fork of the original idea. As it stands, this version of the project was coded entirely by myself, and has significantly less features in regards to importing and exporting than originally planned, as those were less important than the core functionality.
+
+This project will most likely continue as a small side project, and eventually include both MIDI and NSF support. It would be interesting to eventually included added functionality such as the waveform viewer, an equalizer, and potententially samples. However, the project will need a sizable rewrite to support these features, as it currently contains many loose ends.
+
+## What was Learned
+- The NES is a fairly terrible device for creating music. With its non-linear mixing and strange filters choise, it fails to be consistent in how sounds will play under a variety of conditions. This is what makes it interesting.
+
+- MIDI has many edge cases. As an example, to start playing a MIDI note, there is a note on flag, but to turn a not off, there are two(maybe more) ways. 
+1. Use a note off flag.
+2. Use a note on with a velocity of 0.
+While this doesn't seem particularly difficult to add, issues like this compound in annoying ways.
+
+- Egui is significantly more performant that originally thought. As RustNES uses egui, which is an immediate mode GUI crate, there was a concern that the amount of note pitches buttons needed would bottleneck the allowed notes on screen. This never happened. Even with 32 pitches per note, and 32 notes per page it still ran well. For clarity however, the number was lowered back to 24 pitches.
+
+- While rust is complicated at first, it is an extremely intersting language.
+
 ## Contributors
 ---
-[Cy Chung](https://github.com/crschung), [Jae Park](https://github.com/jpark052), [Spencer Hart](https://github.com/Syyreign), [David Kim](https://github.com/Quayvid), [Ethan Slogotski](https://github.com/eman1003), [Francis German](francisgerman70), [Skylar Buck](https://github.com/Skylar777)
+[Cy Chung](https://github.com/crschung), [Jae Park](https://github.com/jpark052), [Spencer Hart](https://github.com/Syyreign)
 
 ## Contributions
 
@@ -44,7 +73,6 @@ in quality.
 - File saving and loading using the custom extension `.rsf` (RustNES Sound Format)
 - The GUI
 <img width="300" alt="NES_GUI" src="https://user-images.githubusercontent.com/7028156/233228911-59ea7c7f-a47a-4d90-84c4-fba33d0df45b.png">
-
 
 ## Resources
 ---
@@ -67,26 +95,7 @@ in quality.
 
 ## Programming Language
 ---
-Mainly Rust, and possibly Python as well
-
-## Expected Functions:
----
-* MIDI Input
-* Visualization (waveform)
-* GUI
-* Pass songs using import 
-
-## Potential Functions:
----
-* Filters?
-* Entrie chip (real code)
-* Export and Save (.wav, .ogg, .mp3)
-
-## Dependencies
----
-* [Rodio](https://github.com/RustAudio/rodio)
-* [egui](https://github.com/emilk/egui)
-
+Rust
 
 ## How To Run
 ---
