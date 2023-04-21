@@ -85,8 +85,6 @@ Mainly Rust, and possibly Python as well
 ## Dependencies
 ---
 * [Rodio](https://github.com/RustAudio/rodio)
-* simple_waves
-* [mido](https://mido.readthedocs.io/en/latest/)
 * [egui](https://github.com/emilk/egui)
 
 
