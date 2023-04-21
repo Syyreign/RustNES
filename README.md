@@ -48,7 +48,7 @@ This project will most likely continue as a small side project, and eventually i
 1. Use a note off flag.
 2. Use a note on with a velocity of 0.
 
-While this doesn't seem particularly difficult to add, issues like this compound in annoying ways.
+      While this doesn't seem particularly difficult to add, issues like this compound in annoying ways.
 
 - Egui is significantly more performant that originally thought. As RustNES uses egui, which is an immediate mode GUI crate, there was a concern that the amount of note pitches buttons needed would bottleneck the allowed notes on screen. This never happened. Even with 32 pitches per note, and 32 notes per page it still ran well. For clarity however, the number was lowered back to 24 pitches.
 
