@@ -90,6 +90,8 @@ Mainly Rust, and possibly Python as well
 
 ## How To Run
 ---
+1. Install Rust: https://www.rust-lang.org/tools/install
+2. Navigate to the root of the project and type:
 ```
 cargo build
 cargo run
