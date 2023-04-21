@@ -44,7 +44,7 @@ This project will most likely continue as a small side project, and eventually i
 ## What was Learned
 - The NES is a fairly terrible device for creating music. With its non-linear mixing and strange filters choise, it fails to be consistent in how sounds will play under a variety of conditions. This is what makes it interesting.
 
-- MIDI has many edge cases. As an example, to start playing a MIDI note, there is a note on flag, but to turn a not off, there are two(maybe more) ways. 
+- MIDI has many edge cases. As an example, to start playing a MIDI note, there is a note on flag, but to turn a note off, there are two(maybe more) ways. 
 1. Use a note off flag.
 2. Use a note on with a velocity of 0.
 
