@@ -52,7 +52,7 @@ This project will most likely continue as a small side project, and eventually i
 
 - Egui is significantly more performant that originally thought. As RustNES uses egui, which is an immediate mode GUI crate, there was a concern that the amount of note pitches buttons needed would bottleneck the allowed notes on screen. This never happened. Even with 32 pitches per note, and 32 notes per page it still ran well. For clarity however, the number was lowered back to 24 pitches.
 
-- While rust is complicated at first, it is an extremely intersting language.
+- While rust is complicated at first, it is an extremely interesting language.
 
 ## Contributors
 ---
